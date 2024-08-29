@@ -19,9 +19,10 @@ def get_parameters(dataset_name):
     params['class_split'] = False
     params['backbone'] = 'fc'  # options: [fc, vit]  # this is the backbone of E and G (where its input data is already encoded by "encoder_type")
     params['include_U'] = True   # True if we use the U (unclustered points) at each forward of the model
-    params['unsup_flag'] = False   # If True, use pseudo-labels from augmentations during training. Otherwise, use ground-truth labels.
-    params['tempr'] = 0.4  # calibration temperature (used in the "sample" and "sample_for_J_loss" functions). Use 1 for no calibration
-
+    params['unsup_flag'] = True   # If True, use pseudo-labels from augmentations during training. Otherwise, use ground-truth labels.
+    params['tempr'] = 0.05  # also 0.4 is good.  # calibration temperature (used in the "sample" and "sample_for_J_loss" functions). Use 1 for no calibration
+    params['K_fixed'] = -1
+    
     # Optimation params:    
     params['lr'] = 0.0005
     params['min_lr'] = 1e-5
@@ -57,7 +58,7 @@ def get_parameters(dataset_name):
         params['x_dim'] = 2
         params['H_dim'] = 128
         params['pre_attn_dim'] = 256
-        params['h_dim'] = 256
+        params['h_dim'] = 128
         params['sigma'] = 1        # std for the Gaussian noise around the cluster mean 
         params['lambda'] = 10      # std for the Gaussian prior that generates de centers of the clusters
         params['img_sz'] = None
@@ -115,7 +116,7 @@ def get_parameters(dataset_name):
         
     elif dataset_name == 'Features':
         params['x_dim'] = 384
-        params['H_dim'] = 256
+        params['H_dim'] = 128
         params['pre_attn_dim'] = 256
         params['h_dim'] = 128
         params['img_sz'] = None

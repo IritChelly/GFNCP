@@ -127,13 +127,20 @@ class dataGenerator():
                 label_data_map = None
         else:
             label_data_map = self.label_data_map_test
-            
-        # Number of clusters to sample from:
-        L = self.params['nlabels']
-        K = L + 1
-        while K > L:  # Generate clustering according to CRP with K < L.
-            clusters, N, K = generate_CRP(self.params, N=N, alpha=self.params['alpha'], train=train)  
-            # "clusters": is in shape [N+2]. Entry i (from 1..N+1) holds the number of points assigned to label i. Sum over clusters should be equal to N.
+  
+        if self.params['K_fixed'] == -1:
+            # Number of clusters to sample from:
+            L = self.params['nlabels']
+            K = L + 1
+            while K > L:  # Generate clustering according to CRP with K < L.
+                clusters, N, K = generate_CRP(self.params, N=N, alpha=self.params['alpha'], train=train)  
+                # "clusters": is in shape [N+2]. Entry i (from 1..N+1) holds the number of points assigned to label i. Sum over clusters should be equal to N.
+        else: 
+            # Running with fixed K:
+            L = self.params['K_fixed']
+            K = 0
+            while K != L:  # Generate clustering according to CRP with K < L.
+                clusters, N, K = generate_CRP(self.params, N=N, train=train)  
         
         # Prepare "data" tensor:     
         if self.channels == 0 and self.params['dataset_name'] == 'Features':  # For extracted-features input
@@ -250,9 +257,16 @@ class gauss2dGenerator():
         lamb = self.params['lambda']
         sigma = self.params['sigma']
         x_dim = self.params['x_dim']    
-        
-        clusters, N, K = generate_CRP(self.params, N=N, alpha=self.params['alpha'], train=train)
-        
+
+        if self.params['K_fixed'] == -1:
+            clusters, N, K = generate_CRP(self.params, N=N, alpha=self.params['alpha'], train=train)
+        else:
+            # Run with fixed K:
+            L = self.params['K_fixed']
+            K = 0
+            while K != L:  # Generate clustering according to CRP with a specific K (that matches K_fixed from the params file)
+                clusters, N, K = generate_CRP(self.params, N=N, train=train)
+
         data = torch.zeros([batch_size, N, self.x_dim]) 
         
         cumsum = np.cumsum(clusters)  # Cumulative sum. Shape: [N+2]
@@ -474,7 +488,7 @@ class DataAugmentation(object):
                 transforms.RandomResizedCrop(img_size, scale=scale, interpolation=Image.BICUBIC),
                 transforms.RandomApply(
                     [transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1)],
-                    p=0.5
+                    p=0.8
                 ),
                 transforms.RandomRotation(degrees=(-30, 30), fill=(0,)),
                 transforms.RandomGrayscale(p=0.2),
