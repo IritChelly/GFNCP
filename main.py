@@ -5,6 +5,7 @@ import os
 os.environ["NCCL_P2P_DISABLE"] = '1'
 # os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 os.environ["WANDB_SILENT"] = "true"
+os.environ["WANDB__SERVICE_WAIT"] = "300"
 
 import numpy as np
 import argparse
@@ -233,6 +234,7 @@ def main(args):
             'Max LL (test): {0:.3f} (on iter:) {1:.3f}'.format(stats['LL_max'], stats['LL_max_it']), '\n',
             'Min MC (test): {0:.3f} (on iter:) {1:.3f}'.format(stats['MC_min'], stats['MC_min_it']), '\n')
     
+    wnb.finish()
     
 
 def set_seed(seed):
@@ -247,7 +249,7 @@ def set_seed(seed):
     
 def init_wandb(args, params):
     if has_wandb:
-        wnb = wandb.init(entity='bgu_cs_vil', project="NCP_EB", name=args.experiment, config=args)
+        wnb = wandb.init(entity='bgu_cs_vil', project="NCP_EB", name=args.experiment, config=args, settings=wandb.Settings(_service_wait=300))
         wnb.log_code(".")  # log source code of this run
         wnb.config.update(params)
     else:
@@ -262,7 +264,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Neural Clustering Process')
 
     parser.add_argument('--dataset', type=str, default='Gauss2D', metavar='S',
-                    choices = ['Gauss2D','MNIST', 'FASHIONMNIST', 'CIFAR', 'Features', 'tinyimagenet'],
+                    choices = ['Gauss2D','MNIST', 'FASHIONMNIST', 'CIFAR', 'IN50_ftrs', 'CIFAR_ftrs', 'tinyimagenet'],
                     help='Generative Model: Gauss2D or MNIST (default: Gauss2D)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='enables CUDA training')

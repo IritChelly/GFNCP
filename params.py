@@ -113,8 +113,25 @@ def get_parameters(dataset_name):
         params['Nmax'] = 1000
         params['Nmin_test'] = 20
         params['Nmax_test'] = 50
+
+    elif dataset_name == 'STL':
+        params['x_dim'] = 9216
+        params['H_dim'] = 128
+        params['pre_attn_dim'] = 256
+        params['h_dim'] = 256
+        params['img_sz'] = 96
+        params['channels'] = 3
+        params['input_dim'] = 96 * 96 * 3
+        params['nlabels'] = 10
+        params['reduce_dim_type'] = 't-SNE'
+        params['data_path'] = params['data_path'] + '/CIFAR-10-images/' 
+        params['encoder_type'] = 'resnet18'
+        params['Nmin'] = 100
+        params['Nmax'] = 1000
+        params['Nmin_test'] = 20
+        params['Nmax_test'] = 50
         
-    elif dataset_name == 'Features':
+    elif dataset_name == 'IN50_ftrs':
         params['x_dim'] = 384
         params['H_dim'] = 128
         params['pre_attn_dim'] = 256
@@ -123,6 +140,21 @@ def get_parameters(dataset_name):
         params['channels'] = 0
         params['nlabels'] = 50
         params['data_path'] = params['data_path'] + '/imagenet50_featutres/'  
+        params['encoder_type'] = 'fc'
+        params['Nmin'] = 100
+        params['Nmax'] = 1300
+        params['Nmin_test'] = 20
+        params['Nmax_test'] = 50
+
+    elif dataset_name == 'CIFAR_ftrs':
+        params['x_dim'] = 384
+        params['H_dim'] = 128
+        params['pre_attn_dim'] = 256
+        params['h_dim'] = 128
+        params['img_sz'] = None
+        params['channels'] = 0
+        params['nlabels'] = 10
+        params['data_path'] = params['data_path'] + '/cifar10_features/'  
         params['encoder_type'] = 'fc'
         params['Nmin'] = 100
         params['Nmax'] = 1300

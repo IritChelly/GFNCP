@@ -86,7 +86,7 @@ class dataGenerator():
             print('Processing label ', i, ' with ', S, ' data points.')
             
                 # For extracted-features input
-            if self.channels == 0 and self.params['dataset_name'] == 'Features': 
+            if self.channels == 0: 
                 label_data_map[i] = torch.zeros([S, self.x_dim])
                 for s in range(S):
                     label_data_map[i][s, :] = dataset[label_inds[s]][0][:]
@@ -143,7 +143,7 @@ class dataGenerator():
                 clusters, N, K = generate_CRP(self.params, N=N, train=train)  
         
         # Prepare "data" tensor:     
-        if self.channels == 0 and self.params['dataset_name'] == 'Features':  # For extracted-features input
+        if self.channels == 0:  # For extracted-features input
             data = torch.zeros([batch_size, N, self.x_dim])    
         elif self.channels == 1:  # for black and white images
             data = torch.zeros([batch_size, N, self.img_sz, self.img_sz])
@@ -208,7 +208,7 @@ class dataGenerator():
         print('full test-data size:', N)
         
                     # For extracted-features input
-        if self.channels == 0 and self.params['dataset_name'] == 'Features': 
+        if self.channels == 0: 
             data = torch.zeros([B, N, self.x_dim])    
             # for black and white images
         elif self.channels == 1: 
@@ -227,7 +227,7 @@ class dataGenerator():
         np.random.shuffle(arr)
         cs = cs[arr]   
             # For extracted-features input
-        if self.channels == 0 and self.params['dataset_name'] == 'Features': 
+        if self.channels == 0: 
             data = data[:, arr, :]      
             # for black and white images
         elif self.channels == 1: 
@@ -365,7 +365,7 @@ def get_dataset(params,
     data_dir = params['data_path']
     size = params['img_sz']
 
-    if data_name != 'Features':
+    if 'ftrs' not in data_name:
         mnist_transform = transforms.Compose([
                                     transforms.Resize(size),
                                     transforms.CenterCrop(size),
@@ -431,7 +431,7 @@ def get_dataset(params,
                                 ]))
         nlabels = len(dataset.classes)
     
-    elif data_name == 'Features':
+    elif data_name == 'IN50_ftrs':
         # Load data and labels from .pt files, it should be in shape: data=[len(dataset), x_dim], labels=[len(dataset),]
         # dataset object is a list of tuples of (x, c) which is data and label.
         
@@ -447,7 +447,24 @@ def get_dataset(params,
             dataset[i] = (x[i], c[i])
 
         nlabels = torch.unique(c)    
-                   
+
+    elif data_name == 'CIFAR_ftrs':
+        # Load data and labels from .pt files, it should be in shape: data=[len(dataset), x_dim], labels=[len(dataset),]
+        # dataset object is a list of tuples of (x, c) which is data and label.
+        
+        dataset = {}
+        if train:
+            x = torch.load(data_dir + 'embedding_train.pt') # [N, x_dim]
+            c = torch.load(data_dir + 'labels_train.pt')  # [N,]
+        else:
+            x = torch.load(data_dir + 'embeddings_test.pt') # [N, x_dim]
+            c = torch.load(data_dir + 'labels_test.pt')   # [N,]  
+        
+        for i in range(len(c)):
+            dataset[i] = (x[i], c[i])
+
+        nlabels = torch.unique(c)  
+                           
     else:
         raise NameError('Unknown dataset_name ' + data_name)
     

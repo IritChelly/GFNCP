@@ -1,10 +1,10 @@
 #!/bin/bash
 
-#SBATCH --partition rtx2080  ### choose from: [--partition rtx2080, rtx3090, rtx6000, main]
+#SBATCH --partition rtx6000  ### choose from: [--partition rtx2080, rtx3090, rtx6000, main]
 #SBATCH --time 7-00:00:00
 #SBATCH --job-name 'NCP_EB'
 #SBATCH --output log.log
-#SBATCH --gpus=rtx_2080:1    ### choose from: [rtx_3090:1, gpus=rtx_2080:1, gpus=rtx_6000:1]. Here we can request multiple gpus, e.g.: --gpus=rtx_3090:4
+#SBATCH --gpus=rtx_6000:1    ### choose from: [rtx_3090:1, gpus=rtx_2080:1, gpus=rtx_6000:1]. Here we can request multiple gpus, e.g.: --gpus=rtx_3090:4
 #SBATCH --mem=60G
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=6
