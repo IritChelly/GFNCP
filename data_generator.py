@@ -140,7 +140,7 @@ class dataGenerator():
             L = self.params['K_fixed']
             K = 0
             while K != L:  # Generate clustering according to CRP with K < L.
-                clusters, N, K = generate_CRP(self.params, N=N, train=train)  
+                clusters, N, K = generate_CRP(self.params, N=N, alpha=self.params['alpha'], train=train)  
         
         # Prepare "data" tensor:     
         if self.channels == 0:  # For extracted-features input
@@ -265,7 +265,7 @@ class gauss2dGenerator():
             L = self.params['K_fixed']
             K = 0
             while K != L:  # Generate clustering according to CRP with a specific K (that matches K_fixed from the params file)
-                clusters, N, K = generate_CRP(self.params, N=N, train=train)
+                clusters, N, K = generate_CRP(self.params, N=N, alpha=self.params['alpha'], train=train)
 
         data = torch.zeros([batch_size, N, self.x_dim]) 
         

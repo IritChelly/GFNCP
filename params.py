@@ -5,7 +5,7 @@ def get_parameters(dataset_name):
     params = {}
     
     params['batch_size'] = 64
-    params['max_it'] = 10000
+    params['max_it'] = 20000
     params['loss_str'] = 'MC_R'  # Choose from: {'MC + J', 'MC', 'MC_R', 'J', 'MC + J + KL', 'KL'}
     params['data_path'] = '/home/tohamy/Projects/data'  # options: [/home/tohamy/Projects/data, /vildata/tohamy/CPAB_Activation/data'
     
@@ -30,7 +30,7 @@ def get_parameters(dataset_name):
     params['weight_decay'] = 0.0
     params['weight_decay_end'] = None
     
-    params['alpha'] = .7  # Dispersion parameter of the Chinese Restaurant Process
+    params['alpha'] = 4.0  #.7  # Dispersion parameter of the Chinese Restaurant Process
 
     params['CIFAR100_TRAIN_MEAN'] = (0.5070751592371323, 0.48654887331495095, 0.4409178433670343)  # for data transform
     params['CIFAR100_TRAIN_STD'] = (0.2673342858792401, 0.2564384629170883, 0.27615047132568404)   # for data transform
@@ -64,10 +64,10 @@ def get_parameters(dataset_name):
         params['img_sz'] = None
         params['channels'] = 0
         params['encoder_type'] = 'fc'
-        params['Nmin'] = 10
-        params['Nmax'] = 100
-        params['Nmin_test'] = 20
-        params['Nmax_test'] = 21
+        params['Nmin'] = 100
+        params['Nmax'] = 1000
+        params['Nmin_test'] = 300
+        params['Nmax_test'] = 301
         
     elif dataset_name == 'MNIST':
         params['x_dim'] = 784  # when using fc_encoder directly on the images
@@ -78,10 +78,10 @@ def get_parameters(dataset_name):
         params['channels'] = 1
         params['nlabels'] = 10
         params['encoder_type'] = 'conv'
-        params['Nmin'] = 5
-        params['Nmax'] = 100
-        params['Nmin_test'] = 20
-        params['Nmax_test'] = 21
+        params['Nmin'] = 100
+        params['Nmax'] = 1000
+        params['Nmin_test'] = 300
+        params['Nmax_test'] = 301
     
     elif dataset_name == 'FASHIONMNIST':
         params['x_dim'] = 784  # when using fc_encoder directly on the images
@@ -94,8 +94,8 @@ def get_parameters(dataset_name):
         params['encoder_type'] = 'conv'
         params['Nmin'] = 100
         params['Nmax'] = 1000
-        params['Nmin_test'] = 200
-        params['Nmax_test'] = 201
+        params['Nmin_test'] = 300
+        params['Nmax_test'] = 301
         
     elif dataset_name == 'CIFAR':
         params['x_dim'] = 3072
@@ -142,8 +142,8 @@ def get_parameters(dataset_name):
         params['data_path'] = params['data_path'] + '/imagenet50_featutres/'  
         params['encoder_type'] = 'fc'
         params['Nmin'] = 100
-        params['Nmax'] = 1300
-        params['Nmin_test'] = 20
+        params['Nmax'] = 1000
+        params['Nmin_test'] = 49
         params['Nmax_test'] = 50
 
     elif dataset_name == 'CIFAR_ftrs':
@@ -157,9 +157,9 @@ def get_parameters(dataset_name):
         params['data_path'] = params['data_path'] + '/cifar10_features/'  
         params['encoder_type'] = 'fc'
         params['Nmin'] = 100
-        params['Nmax'] = 1300
-        params['Nmin_test'] = 20
-        params['Nmax_test'] = 50
+        params['Nmax'] = 1000
+        params['Nmin_test'] = 300
+        params['Nmax_test'] = 301
         
     elif dataset_name == 'tinyimagenet':
         params['x_dim'] = None

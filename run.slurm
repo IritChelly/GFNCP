@@ -33,5 +33,5 @@ conda env list
 # ------ RUNNING LINE ---------
 # --load-model
 # --run-geweke
-# --dataset choices = ['Gauss2D','MNIST', 'FASHIONMNIST', 'CIFAR', 'Features', 'tinyimagenet']
+# --dataset choices = ['Gauss2D','MNIST', 'FASHIONMNIST', 'CIFAR', 'IN50_ftrs', 'CIFAR_ftrs', 'tinyimagenet']
 python -u main.py --dataset Gauss2D --show-histogram --load-model --run-geweke --experiment run_for_Geweke_test

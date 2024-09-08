@@ -245,7 +245,7 @@ class NeuralClustering(nn.Module):
             
             # -------- MC Loss: --------------------
             if '_R' in self.params['loss_str']:
-                mc_n_term, log_pn = mc_r_loss_func(E, log_pn, n, N, cs[0, :], B, self, hs, qs, epsilon=1e-5, lambda_r=1.0)
+                mc_n_term, log_pn = mc_r_loss_func(E, log_pn, n, N, cs[0, :], B, self, hs, qs, epsilon=1e-5, lambda_r=0.1)
                 mc_loss += mc_n_term
             else:
                 mc_n_term, log_pn = mc_loss_func(E, log_pn, n, N, cs[0, :], B, epsilon=1e-5)
