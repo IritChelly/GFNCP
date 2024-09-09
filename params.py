@@ -30,7 +30,7 @@ def get_parameters(dataset_name):
     params['weight_decay'] = 0.0
     params['weight_decay_end'] = None
     
-    params['alpha'] = 4.0  #.7  # Dispersion parameter of the Chinese Restaurant Process
+    params['alpha'] = 1.0  #.7  # Dispersion parameter of the Chinese Restaurant Process
 
     params['CIFAR100_TRAIN_MEAN'] = (0.5070751592371323, 0.48654887331495095, 0.4409178433670343)  # for data transform
     params['CIFAR100_TRAIN_STD'] = (0.2673342858792401, 0.2564384629170883, 0.27615047132568404)   # for data transform

@@ -128,17 +128,16 @@ class dataGenerator():
         else:
             label_data_map = self.label_data_map_test
   
+        K = 0
         if self.params['K_fixed'] == -1:
             # Number of clusters to sample from:
             L = self.params['nlabels']
-            K = L + 1
-            while K > L:  # Generate clustering according to CRP with K < L.
+            while K < 3 or K > L:  # Generate clustering according to CRP with 3 <= K <= L.
                 clusters, N, K = generate_CRP(self.params, N=N, alpha=self.params['alpha'], train=train)  
                 # "clusters": is in shape [N+2]. Entry i (from 1..N+1) holds the number of points assigned to label i. Sum over clusters should be equal to N.
         else: 
             # Running with fixed K:
             L = self.params['K_fixed']
-            K = 0
             while K != L:  # Generate clustering according to CRP with K < L.
                 clusters, N, K = generate_CRP(self.params, N=N, alpha=self.params['alpha'], train=train)  
         
@@ -258,12 +257,15 @@ class gauss2dGenerator():
         sigma = self.params['sigma']
         x_dim = self.params['x_dim']    
 
+        K = 0
         if self.params['K_fixed'] == -1:
-            clusters, N, K = generate_CRP(self.params, N=N, alpha=self.params['alpha'], train=train)
+            # Number of clusters to sample from:
+            L = 10
+            while K < 3 or K > L:  # Generate clustering according to CRP with 3 <= K <= L.
+                clusters, N, K = generate_CRP(self.params, N=N, alpha=self.params['alpha'], train=train)  
         else:
             # Run with fixed K:
             L = self.params['K_fixed']
-            K = 0
             while K != L:  # Generate clustering according to CRP with a specific K (that matches K_fixed from the params file)
                 clusters, N, K = generate_CRP(self.params, N=N, alpha=self.params['alpha'], train=train)
 
