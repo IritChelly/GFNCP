@@ -34,6 +34,7 @@ def main(args):
     
     datasetname = args.dataset
     load_model = args.load_model
+    eval_best_model = args.eval_best_model
     run_geweke = args.run_geweke
     params = get_parameters(datasetname)
     params['device'] = torch.device("cuda:0" if args.cuda else "cpu") 
@@ -104,7 +105,7 @@ def main(args):
     os.makedirs(os.path.dirname(checkpoint_meta_dir), exist_ok=True)
 
     # Load the trained model and set start_it, if required:
-    if load_model or run_geweke:
+    if load_model or run_geweke or eval_best_model:
         state = restore_checkpoint(checkpoint_meta_dir, state, params['device'])
         start_it = state['step']
         print('\nRestore model from iteration:', state['step'])
@@ -134,6 +135,11 @@ def main(args):
         plt2.clf()
         return
 
+    if eval_best_model:
+        print('Start evaluation of chosen model')
+        M = (dataset_test_size//batch_size)*2
+        stats = eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=M)
+        return
 
     # ----------------------------------------------
     #              Main training loop:
@@ -273,7 +279,9 @@ if __name__ == '__main__':
     parser.add_argument('--show-histogram', action='store_true', default=False,
                     help='flag for analyzing a trained model')
     parser.add_argument('--load-model', action='store_true', default=False,
-                    help='flag for loading model or start from scratch')      
+                    help='flag for loading model or start from scratch')    
+    parser.add_argument('--eval-best-model', action='store_true', default=False,
+                    help='flag for loading model or start from scratch')    
     parser.add_argument('--run-geweke', action='store_true', default=False,
                     help='flag for running Gewekes Test from a learned model')  
     parser.add_argument('--experiment', default='', type=str, metavar='NAME',
@@ -282,7 +290,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
     
-    if not args.load_model and not args.run_geweke:
+    if not args.load_model and not args.run_geweke and not args.eval_best_model:
         # Remove saved models
         model_dir = 'saved_models'
         if not os.path.exists(model_dir):

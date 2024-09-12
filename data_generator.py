@@ -456,17 +456,17 @@ def get_dataset(params,
         
         dataset = {}
         if train:
-            x = torch.load(data_dir + 'embedding_train.pt') # [N, x_dim]
-            c = torch.load(data_dir + 'labels_train.pt')  # [N,]
+            x = torch.load(data_dir + 'embedding_train.pt').cpu().detach() # [N, x_dim]
+            c = torch.load(data_dir + 'labels_train.pt').cpu().detach()  # [N,]
         else:
-            x = torch.load(data_dir + 'embeddings_test.pt') # [N, x_dim]
-            c = torch.load(data_dir + 'labels_test.pt')   # [N,]  
+            x = torch.load(data_dir + 'embeddings_test.pt').cpu().detach() # [N, x_dim]
+            c = torch.load(data_dir + 'labels_test.pt').cpu().detach()   # [N,]  
         
         for i in range(len(c)):
             dataset[i] = (x[i], c[i])
 
-        nlabels = torch.unique(c)  
-                           
+        nlabels = torch.unique(c)
+                                   
     else:
         raise NameError('Unknown dataset_name ' + data_name)
     

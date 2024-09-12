@@ -25,7 +25,7 @@ def get_parameters(dataset_name):
     
     # Optimation params:    
     params['lr'] = 0.0005
-    params['min_lr'] = 1e-5
+    params['min_lr'] = 1e-6
     params['sched_lr_update'] = 10  # update lr every x iterations.
     params['weight_decay'] = 0.0
     params['weight_decay_end'] = None
@@ -156,10 +156,10 @@ def get_parameters(dataset_name):
         params['nlabels'] = 10
         params['data_path'] = params['data_path'] + '/cifar10_features/'  
         params['encoder_type'] = 'fc'
-        params['Nmin'] = 100
-        params['Nmax'] = 1000
-        params['Nmin_test'] = 300
-        params['Nmax_test'] = 301
+        params['Nmin'] = 100  # 100
+        params['Nmax'] = 200 # 1000
+        params['Nmin_test'] = 200 # 300
+        params['Nmax_test'] = 201 # 301
         
     elif dataset_name == 'tinyimagenet':
         params['x_dim'] = None
