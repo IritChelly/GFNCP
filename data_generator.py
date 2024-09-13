@@ -433,7 +433,7 @@ def get_dataset(params,
                                 ]))
         nlabels = len(dataset.classes)
     
-    elif data_name == 'IN50_ftrs':
+    elif data_name == 'IN50_ftrs_roy':
         # Load data and labels from .pt files, it should be in shape: data=[len(dataset), x_dim], labels=[len(dataset),]
         # dataset object is a list of tuples of (x, c) which is data and label.
         
@@ -449,6 +449,23 @@ def get_dataset(params,
             dataset[i] = (x[i], c[i])
 
         nlabels = torch.unique(c)    
+
+    elif data_name == 'IN50_ftrs' or data_name == 'IN100_ftrs' or data_name == 'IN200_ftrs':
+        # Load data and labels from .pt files, it should be in shape: data=[len(dataset), x_dim], labels=[len(dataset),]
+        # dataset object is a list of tuples of (x, c) which is data and label.
+        
+        dataset = {}
+        if train:
+            x = torch.load(data_dir + 'embeddings_train.pt').cpu().detach() # [N, x_dim]
+            c = torch.load(data_dir + 'labels_train.pt').cpu().detach()  # [N,]
+        else:
+            x = torch.load(data_dir + 'embeddings_test.pt').cpu().detach() # [N, x_dim]
+            c = torch.load(data_dir + 'labels_test.pt').cpu().detach()   # [N,] 
+        
+        for i in range(len(c)):
+            dataset[i] = (x[i], c[i])
+
+        nlabels = torch.unique(c)  
 
     elif data_name == 'CIFAR_ftrs':
         # Load data and labels from .pt files, it should be in shape: data=[len(dataset), x_dim], labels=[len(dataset),]

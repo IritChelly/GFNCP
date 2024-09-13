@@ -139,13 +139,43 @@ def get_parameters(dataset_name):
         params['img_sz'] = None
         params['channels'] = 0
         params['nlabels'] = 50
-        params['data_path'] = params['data_path'] + '/imagenet50_featutres/'  
+        params['data_path'] = params['data_path'] + '/imagenet50_ftrs/'  
         params['encoder_type'] = 'fc'
         params['Nmin'] = 100
         params['Nmax'] = 1000
         params['Nmin_test'] = 49
         params['Nmax_test'] = 50
 
+    elif dataset_name == 'IN100_ftrs':
+        params['x_dim'] = 384
+        params['H_dim'] = 128
+        params['pre_attn_dim'] = 256
+        params['h_dim'] = 128
+        params['img_sz'] = None
+        params['channels'] = 0
+        params['nlabels'] = 100
+        params['data_path'] = params['data_path'] + '/imagenet100_ftrs/'  
+        params['encoder_type'] = 'fc'
+        params['Nmin'] = 100
+        params['Nmax'] = 1000
+        params['Nmin_test'] = 99
+        params['Nmax_test'] = 100
+
+    elif dataset_name == 'IN200_ftrs':
+        params['x_dim'] = 384
+        params['H_dim'] = 128
+        params['pre_attn_dim'] = 256
+        params['h_dim'] = 128
+        params['img_sz'] = None
+        params['channels'] = 0
+        params['nlabels'] = 200
+        params['data_path'] = params['data_path'] + '/imagenet200_ftrs/'  
+        params['encoder_type'] = 'fc'
+        params['Nmin'] = 100
+        params['Nmax'] = 1000
+        params['Nmin_test'] = 199
+        params['Nmax_test'] = 200
+                
     elif dataset_name == 'CIFAR_ftrs':
         params['x_dim'] = 384
         params['H_dim'] = 128
