@@ -33,7 +33,7 @@ conda env list
 # ------ RUNNING LINE ---------
 # --load-model
 # --run-geweke
-# --dataset choices = ['Gauss2D','MNIST', 'FASHIONMNIST', 'CIFAR', 'IN50_ftrs', 'CIFAR_ftrs', 'tinyimagenet']
+# --dataset choices = ['Gauss2D','MNIST', 'FASHIONMNIST', 'CIFAR', 'IN50_ftrs', 'IN100_ftrs', 'IN200_ftrs', 'CIFAR_ftrs', 'tinyimagenet']
 # --eval-best-model  # to compute metrics after the model has converged
 
 # python -u main.py --dataset CIFAR_ftrs --show-histogram --load-model --run-geweke --experiment test_run

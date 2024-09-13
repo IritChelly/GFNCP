@@ -270,7 +270,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Neural Clustering Process')
 
     parser.add_argument('--dataset', type=str, default='Gauss2D', metavar='S',
-                    choices = ['Gauss2D','MNIST', 'FASHIONMNIST', 'CIFAR', 'IN50_ftrs', 'CIFAR_ftrs', 'tinyimagenet'],
+                    choices = ['Gauss2D','MNIST', 'FASHIONMNIST', 'CIFAR', 'IN50_ftrs', 'IN100_ftrs', 'IN200_ftrs', 'CIFAR_ftrs', 'tinyimagenet'],
                     help='Generative Model: Gauss2D or MNIST (default: Gauss2D)')
     parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='enables CUDA training')
