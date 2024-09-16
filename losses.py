@@ -65,7 +65,7 @@ def mc_r_loss_func(E, log_pn, n, N, cs, batch_size, dpmm, hs, qs, epsilon=1e-5, 
         MC_n_term = MC_n_term.mean()
         log_pn = - torch.unsqueeze(E[:, cs[n]], 1) + m  # [B, 1], unnormalized logprob of p(c_{0:n} | x)
         
-        # Compute the last MC term: Here the reward is alo learned.
+        # Compute the last MC term: Here the reward is also learned.
         if n == N - 1:
             true_E = - log_pn   # This is E[:, cs[n]] where n is the last point, using the ground-truth c(n)
             fake_E = dpmm.sample_for_J_loss(hs, qs)  # This is E[:, cs_samples[n]] where n is the last point, using sampled c(n)

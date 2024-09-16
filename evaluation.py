@@ -81,6 +81,50 @@ def eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=50):
     return stats
         
 
+def eval_stats_Beam_Search(wnb, data_generator, batch_size, params, dpmm, it, stats, M=50):
+    # M: number of test samples to compute stats on
+    
+    torch.cuda.empty_cache()
+    dataname = params['dataset_name']
+    channels = params['channels']
+    dpmm.eval()
+        
+    with torch.no_grad():
+        
+        NMI_test = 0
+        ARI_test = 0
+        for i in range(M):
+
+            data, cs_gt, _, K = data_generator.generate(N=None, batch_size=batch_size, train=False)  # data: [1, N, 2] or [1, N_sampling, 28, 28] or [1, N, 3, 28, 28]
+            cs_gt = cs_gt[0, :] 
+            N = data.size(1)
+
+            # Get sampled clustering assignments given the data groups:
+            cs_test = sample_from_model_for_NMI(data, dpmm, it)
+            
+            NMI_test += compute_NMI(cs_gt, cs_test, None)
+            ARI_test += compute_ARI(cs_gt, cs_test, None)
+
+        NMI_test = NMI_test / M
+        ARI_test = ARI_test / M
+        
+        print('\n(eval) iteration: {0}, N: {1}, K: {2}, NMI_test: {3:.3f}, ARI_test: {4:.3f}'.format(it, N, K, NMI_test, ARI_test))
+
+        curr_stats = OrderedDict(it=it)
+        curr_stats.update({'NMI_test': NMI_test})
+        curr_stats.update({'ARI_test': ARI_test})
+        wandb.log(curr_stats, step=it)
+        
+        if NMI_test > stats['NMI_max']:
+            stats.update({'NMI_max': NMI_test})
+            stats.update({'NMI_max_it': it})
+        if ARI_test > stats['ARI_max']:
+            stats.update({'ARI_max': ARI_test})
+            stats.update({'ARI_max_it': it})
+                                    
+    dpmm.train()
+    return stats
+
 
 def plot_samples_and_histogram(wnb, data_orig, cs_gt, params, dpmm, it, N=20, show_histogram=False):
     torch.cuda.empty_cache()  
@@ -134,6 +178,10 @@ def plot_samples_and_histogram(wnb, data_orig, cs_gt, params, dpmm, it, N=20, sh
             
     dpmm.train()
 
+
+def sample_from_model_for_NMI(data, dpmm, it):
+    css = dpmm.module.sample_for_NMI(data, it)  # css (cs test): [S, N]; probs: [S,] (or B instead of S) 
+    return css
 
 
 def sample_from_model(channels, data_orig, dpmm, S=100, take_max=True, seed=None):

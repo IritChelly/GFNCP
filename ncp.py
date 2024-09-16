@@ -149,6 +149,58 @@ class NeuralClustering(nn.Module):
         
         return css, probs, ll, mc_loss  # c_samples: [M, N], prob_samples: [M,] where M is the number of succeeded (unique) samples. ll is the log-likelihood of the most liklely clustering.
     
+
+    def sample_for_NMI(self, data, it):
+        B, N = data.shape[0], data.shape[1]
+        L = 5  # MUST BE BIGGER THAN 5
+        curr_assgnmt = torch.zeros((B, 1, N)).to(torch.device('cuda'), dtype=torch.int32)
+        curr_assgnmt_score = torch.zeros((B, 1)).to(torch.device('cuda'))
+        K_max = 50
+        
+        data = data.to(torch.device('cuda'))
+        hs, qs = self.encode(data)
+
+        for n in range(1, N):
+            tmp_assgnmts = torch.zeros((B, curr_assgnmt.shape[1] * K_max, N), dtype=torch.int32)
+            tmp_scores = torch.ones((B, curr_assgnmt.shape[1] * K_max)) * -float('Inf')
+            j = 0  # runs on akk assignment candidates in tmp (its limit is L * K_max).
+            for a in range(curr_assgnmt.shape[1]):
+                assgnmt = curr_assgnmt[:, a, :]  # [B, N]: row b \in B is one candidate (up-till-now) assignment out of the L options.
+                E_, G_mask, K = self.forward_loop_step(hs, qs, assgnmt, n, B, N, cs_is_sample=True)   # E, G_mask: [B, K + 1]  (this is [B, max_K])
+                E_ = E_.to(torch.float64)
+                E = torch.where(G_mask == 0.0, float('Inf'), E_).to(torch.float32)
+                m, _ = torch.min(E, 1, keepdim=True)       
+                logprobs = - E + m - torch.log(torch.exp(-E + m).sum(dim=1, keepdim=True))  # [B, K + 1]. logprob of p(c_n | c_{0:n-1}, x)
+                # probs = torch.exp((1 / self.tempr) * logprobs)   # [B, K + 1]
+                
+                for k in range(E.shape[1]):  # here we run on all options in E given assignment
+                    assgnmt[:, n] = k                    
+                    tmp_assgnmts[:, j, :] = assgnmt
+                    tmp_scores[:, j] = curr_assgnmt_score[:, a] + logprobs[np.arange(B), k]
+                    j = j + 1
+                
+            # Choose the top L assignments from the union of all options (each a in L added several options):
+            #   Prepare new arrays for the assignments and their scores (according to the current union of candidates)
+            if n == 1:
+                M = 2
+            elif n == 2:
+                M = 5
+            else:
+                M = L
+                
+            curr_assgnmt = torch.zeros((B, M, N)).to(torch.device('cuda'), dtype=torch.int32)
+            curr_assgnmt_score = torch.zeros((B, M)).to(torch.device('cuda'))
+                
+            for b in range(B):
+                inds = torch.argsort(tmp_scores[b, :])[-M:]
+                curr_assgnmt[b, :, :] = tmp_assgnmts[b, inds, :]  # [B, L, N]
+                curr_assgnmt_score[b, :] = tmp_scores[b, inds]  # [B, L]
+
+        inds_final = torch.argmax(curr_assgnmt_score, dim=1)  # [B,]
+        final_assgnmt = curr_assgnmt[torch.arange(curr_assgnmt.size(0)), inds_final]  # [B, N] 
+
+        return final_assgnmt
+    
     
     def encode(self, data):
         # Encode data from [B, N, x_dim] to [B, N, h_dim]

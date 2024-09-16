@@ -1,15 +1,15 @@
 #!/bin/bash
 
-#SBATCH --partition main  ### choose from: [--partition rtx2080, rtx3090, rtx6000, main]
+#SBATCH --partition rtx6000  ### choose from: [--partition rtx2080, rtx3090, rtx6000, main]
 #SBATCH --time 7-00:00:00
 #SBATCH --job-name 'NCP_EB'
 #SBATCH --output log.log
-#SBATCH --gpus=rtx_6000:1    ### choose from: [rtx_3090:1, gpus=rtx_2080:1, gpus=rtx_6000:1]. Here we can request multiple gpus, e.g.: --gpus=rtx_3090:4
+#SBATCH --gpus=rtx_6000:2    ### choose from: [rtx_3090:1, gpus=rtx_2080:1, gpus=rtx_6000:1]. Here we can request multiple gpus, e.g.: --gpus=rtx_3090:4
 #SBATCH --mem=60G
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=6
 ##SBATCH --nodelist=cs-3090-04
-##SBATCH --qos=orenfr  ### choose: [pakman, orenfr]
+#SBATCH --qos=pakman  ### choose: [pakman, orenfr]
 
 echo 'date'
 echo -e "\nSLURM_JOBID:\t\t" $SLURM_JOBID
@@ -37,4 +37,4 @@ conda env list
 # --eval-best-model  # to compute metrics after the model has converged
 
 # python -u main.py --dataset CIFAR_ftrs --show-histogram --load-model --run-geweke --experiment test_run
-python -u main.py --dataset CIFAR_ftrs --show-histogram --experiment test_run
+python -u main.py --dataset Gauss2D --show-histogram --experiment test_run_main_code
