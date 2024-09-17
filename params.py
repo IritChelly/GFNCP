@@ -15,6 +15,7 @@ def get_parameters(dataset_name):
     params['mc_weights'] = {}  #{200:2, 300:3, 400:4, 500:5, 600:6, 700:7, 1000:10}
     params['j_weights'] = {}  #{200:2, 300:3, 400:4, 500:5, 600:6, 700:7, 1000:10}
     params['plot_freq'] = 100  # -1, 100..
+    params['save_model_freq'] = 500
     params['iter_stats_avg'] = 1000  # from this iteration we start computing stats average (NMI, ARI, LL)
     params['class_split'] = False
     params['backbone'] = 'fc'  # options: [fc, vit]  # this is the backbone of E and G (where its input data is already encoded by "encoder_type")

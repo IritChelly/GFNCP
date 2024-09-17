@@ -62,6 +62,7 @@ def main(args):
     mc_weights = params['mc_weights']
     j_weights = params['j_weights']
     plot_freq = params['plot_freq']
+    save_model_freq = params['save_model_freq']
     unsup_flag = params['unsup_flag']
 
     # Define the model:
@@ -176,7 +177,7 @@ def main(args):
             plot_samples_and_histogram(wnb, data, cs_gt[0, :], params, dpmm, it, N=20, show_histogram=show_histogram)
             
         # Save the model periodically:
-        if it % 1000 == 0 and it > 1:
+        if it % save_model_freq == 0 and it > 1:
             print('\Saving model.. \n') 
             save_model(state, it, dpmm, optimizer, checkpoint_dir, checkpoint_meta_dir)
   

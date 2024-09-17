@@ -258,7 +258,8 @@ class NeuralClustering(nn.Module):
         B, N = data.shape[0], data.shape[1]
         
         kl_loss = 0
-        mc_loss = 0
+        # mc_loss = 0
+        mc_loss = torch.zeros((B, 1)).to(torch.device('cuda'))
         j_loss = (torch.ones(1,) * -1).to(torch.device('cuda'))
         log_pn = 0
 

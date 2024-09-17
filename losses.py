@@ -50,7 +50,7 @@ def mc_loss_func(E, log_pn, n, N, cs, batch_size, epsilon=1e-5):
 
 
 def mc_r_loss_func(E, log_pn, n, N, cs, batch_size, dpmm, hs, qs, epsilon=1e-5, lambda_r=0.6):
-    MC_n_term = torch.zeros(1).to(E.device)
+    MC_n_term = torch.zeros((E.shape[0], 1)).to(E.device)
     if n == 1:
         m, _ = torch.min(E, 1, keepdim=True)    # [B, 1] 
         log_pn = - torch.unsqueeze(E[:, cs[n]], 1) + m    # [B, 1], unnormalized logprob of p(c_{0:n} | x)
@@ -62,14 +62,14 @@ def mc_r_loss_func(E, log_pn, n, N, cs, batch_size, dpmm, hs, qs, epsilon=1e-5, 
         out_edges = torch.exp(- E + m)
         out_edges_sum = out_edges.sum(dim=1, keepdim=True)  # [B, 1]
         MC_n_term = (torch.log(epsilon + in_edge) - torch.log(epsilon + out_edges_sum)) ** 2   # [B, 1]
-        MC_n_term = MC_n_term.mean()
+        MC_n_term = MC_n_term  #.mean()
         log_pn = - torch.unsqueeze(E[:, cs[n]], 1) + m  # [B, 1], unnormalized logprob of p(c_{0:n} | x)
         
         # Compute the last MC term: Here the reward is also learned.
         if n == N - 1:
             true_E = - log_pn   # This is E[:, cs[n]] where n is the last point, using the ground-truth c(n)
             fake_E = dpmm.sample_for_J_loss(hs, qs)  # This is E[:, cs_samples[n]] where n is the last point, using sampled c(n)
-            last_MC_term = (lambda_r * (true_E - fake_E)).mean() 
+            last_MC_term = (lambda_r * (true_E - fake_E))  # .mean() 
             MC_n_term = MC_n_term + last_MC_term
             
     return MC_n_term, log_pn   # MC_n_term is scalar, log_pn is [B, 1]
