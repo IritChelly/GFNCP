@@ -75,7 +75,7 @@ def compute_prob(dpmm, data, cs):
     cs = relabel(cs)
     cs = torch.tensor(cs)[None, :]
     
-    _, logprob_sum, _, _, _ = dpmm(data, cs)  # Here logprob_sum is B/(num_of_gpus) but we only need the first row.
+    _, logprob_sum, _, _, _, _ = dpmm(data, cs)  # Here logprob_sum is B/(num_of_gpus) but we only need the first row.
 
     prob_sum = np.exp(- logprob_sum[0].cpu().numpy())
     return prob_sum

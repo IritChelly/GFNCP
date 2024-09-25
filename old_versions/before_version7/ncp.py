@@ -9,9 +9,11 @@ import torch.nn.functional as F
 from torch.distributions import Categorical
 from models.backbone_encoders import get_encoder
 from models.backbones import get_backbone
-from losses import kl_loss_func, mc_r_loss_func
+from losses import kl_loss_func, j_loss_func, mc_loss_func, mc_r_loss_func
 from utils import get_argmax_from_probs
 import gc
+# from scipy.stats import entropy
+
 import os
 import psutil
 
@@ -24,16 +26,15 @@ class NeuralClustering(nn.Module):
         super(NeuralClustering, self).__init__()
         
         self.params = params
+        self.previous_n = 0
+        self.previous_K = 1
         self.g_dim = params['g_dim']
         self.h_dim = params['h_dim']
         H = params['H_dim']        
         self.device = params['device']
         self.img_sz = params['img_sz']
-        # self.tempr = params['tempr']
+        self.tempr = params['tempr']
 
-        self.lambda_cd = params['lambda_cd']
-        self.lambda_reg = params['lambda_reg']
-        
         # Prepare the relevant encoder for the input data:
         self.h = get_encoder(params)   # E.g: Input: [B * N, 28, 28], Output: [B * N, h]       
         self.q = get_encoder(params)   # E.g: Input: [B * N, 28, 28], Output: [B * N, h] 
@@ -69,15 +70,14 @@ class NeuralClustering(nn.Module):
             E = torch.where(G_mask == 0.0, float('Inf'), E_).to(torch.float32)  
             m, _ = torch.min(E, 1, keepdim=True)    # [B, 1]      
 
-            probs_un = torch.exp(- E + m) * G_mask  # [B, K + 1]
-            # probs_un = torch.exp((1 / self.tempr) * (- E + m)) * G_mask  # [B, K + 1]
+            # probs_un = torch.exp(- E + m) * G_mask  # [B, K + 1]
+            probs_un = torch.exp((1 / self.tempr) * (- E + m)) * G_mask  # [B, K + 1]
 
             c_sample_n = torch.multinomial(probs_un, num_samples=1).squeeze()  # [B, 1]. These are assignment of the n-th point to one of the clusters, for each row in the batch.
             c_samples[:, n] = c_sample_n 
             E_samples[:, n - 1] = E[range(B), c_sample_n]  # it's N-1 because we don't need the value of c_0.
 
-        fake_E = torch.unsqueeze(E_samples[:, N - 2], 1)
-        # fake_E = torch.unsqueeze(E_samples[:, N - 2], 1) - m
+        fake_E = torch.unsqueeze(E_samples[:, N - 2], 1) - m
         
         return fake_E  # shape: [B,] 
 
@@ -92,8 +92,8 @@ class NeuralClustering(nn.Module):
         
         hs, qs = self.encode(data)
         
-        mc_loss = torch.zeros((S, 1)).to(torch.device('cuda'))
-        log_pn = torch.zeros((S, 1)).to(torch.device('cuda'))
+        mc_loss = 0
+        log_pn = 0
         
         for n in range(1, N):
             E_, G_mask, K = self.forward_loop_step(hs, qs, c_samples, n, S, N, cs_is_sample=True)   # E, G_mask: [S, K + 1]  (this is [S, max_K])
@@ -106,8 +106,8 @@ class NeuralClustering(nn.Module):
             m, _ = torch.min(E, 1, keepdim=True)       
             logprobs = - E + m - torch.log(torch.exp(-E + m).sum(dim=1, keepdim=True))  # [S, K + 1]. logprob of p(c_n | c_{0:n-1}, x)
  
-            probs = torch.exp(logprobs)   # [S, K + 1]
-            # probs = torch.exp((1 / self.tempr) * logprobs)   # [S, K + 1]
+            # probs = torch.exp(logprobs)   # [S, K + 1]
+            probs = torch.exp((1 / self.tempr) * logprobs)   # [S, K + 1]
 
             # Sample and compute negative LL: 
             if take_max:
@@ -121,7 +121,7 @@ class NeuralClustering(nn.Module):
 
             # -------- MC Loss - during inference: --------------------
             if take_max:
-                mc_n_term, log_pn = mc_r_loss_func(E, log_pn, n, N, c_samples[0, :], S, None, None, None, remove_last_term=True)
+                mc_n_term, log_pn = mc_loss_func(E, log_pn, n, N, c_samples[0, :], S, epsilon=1e-5)
                 mc_loss += mc_n_term
             # -------- END MC Loss: ----------------
             
@@ -148,6 +148,7 @@ class NeuralClustering(nn.Module):
         ll = (-sorted_nll).mean()
         
         return css, probs, ll, mc_loss  # c_samples: [M, N], prob_samples: [M,] where M is the number of succeeded (unique) samples. ll is the log-likelihood of the most liklely clustering.
+    
 
     def sample_for_NMI(self, data, it):
         B, N = data.shape[0], data.shape[1]
@@ -217,7 +218,7 @@ class NeuralClustering(nn.Module):
     def forward_loop_step(self, hs, qs, cs, n, B, N, cs_is_sample=False):
         assert n > 0
         K = cs[:, :n].max().item() + 1   
-        
+             
         G, G_mask = self.agg_clustered(hs, cs, n, self.g, cs_is_sample=cs_is_sample)  # G: [B, K + 1, g_dim]; G_mask: [B, K + 1]
 
         if self.params['include_U']:
@@ -226,7 +227,6 @@ class NeuralClustering(nn.Module):
             uu = torch.cat((G, Q), dim=2)  # [B, K + 1, g_dim + h_dim] . Prepare argument for the call to E()
             uu = uu.view([B * (K + 1), self.g_dim + self.h_dim])        
             E = self.E(uu).view([B, K + 1]) # [B, K + 1]. This is the unnormalized logprob of p(c_{0:n} | x).
-            # E = 10 * torch.special.expit(E)    # [B, K + 1]. 
         else:
             G = G.view([B * (K + 1), self.g_dim])   # [B, K + 1, g_dim] . Prepare argument for the call to E()   
             E = self.E(G).view([B, K + 1]) # [B, K + 1]. This is the unnormalized logprob of p(c_{0:n} | x).
@@ -234,7 +234,7 @@ class NeuralClustering(nn.Module):
         return E, G_mask, K
         
         
-    def forward(self, data, cs, cs_is_sample=False, it=-1, uniform_c=False):
+    def forward(self, data, cs, cs_is_sample=False):
         ''' 
             Here we compute the energy (flow) of point n being assigned to each existing/new cluster. Main for runs on n=1...N-1.
             Points n+1,...,N-1 are not assigned yet.
@@ -257,61 +257,59 @@ class NeuralClustering(nn.Module):
                 
         B, N = data.shape[0], data.shape[1]
         
-        logprob_sum = 0
+        kl_loss = 0
+        # mc_loss = 0
         mc_loss = torch.zeros((B, 1)).to(torch.device('cuda'))
+        j_loss = (torch.ones(1,) * -1).to(torch.device('cuda'))
         log_pn = 0
 
         # Saves the cs values computed during training, for NMI computation
         cs_pred_train = torch.zeros((B, N)).to(torch.device('cuda'))
         
         hs, qs = self.encode(data)  # Both in shape [B, N, h]
-            
+                
         # FW step (includes N-1 FW steps in the net):
-        for n in range(0, N):  # n is the next point to be assigned. Points up to n-1 (in each point in the batch, so there are B * (n-1)) were already assigned.                              
+        for n in range(1, N):  # n is the next point to be assigned. Points up to n-1 (in each point in the batch, so there are B * (n-1)) were already assigned.                              
+            E, E_mask, K = self.forward_loop_step(hs, qs, cs, n, B, N, cs_is_sample=cs_is_sample)   # E is [B, K + 1]. This is the unnormalized logprob of p(c_{0:n} | x).
+                        
+            # -------- KL Loss: --------------------
+            # Get the logprobs which is log p(c_n|c_1..c_n-1, x)
+            logprobs_kl = kl_loss_func(E)
             
-            if n == 0:
-                # Prepare the first term (the in_edges) in the MC_R loss
-                if self.params['loss_str'] == 'MC_R':
-                    G = torch.zeros([B, 1, self.g_dim]).to(hs.device)
-                    Q = self.agg_unclustered(qs, -1) # [B, h_dim]
-                    Q = Q[:, None, :].expand([B, 1, self.h_dim])  # [B, 1, h_dim]. Here we repeat h_dim for K+1 times (for eavh element in the batch)
-                    uu = torch.cat((G, Q), dim=2)  # [B, 1, g_dim + h_dim] . Prepare argument for the call to E()
-                    uu = uu.view([B, self.g_dim + self.h_dim])        
-                    E = self.E(uu).view([B, 1])  # [B, 1]. This is the unnormalized logprob of p(c_{0} | x).
-                
-                    mc_n_term, log_pn = mc_r_loss_func(E, log_pn, n, N, cs[0, :], B, self, hs, qs)
-                    mc_loss += mc_n_term
-                
-            else:
-                E, E_mask, K = self.forward_loop_step(hs, qs, cs, n, B, N, cs_is_sample=cs_is_sample)   # E is [B, K + 1]. This is the unnormalized logprob of p(c_{0:n} | x).
+            # Compute entropy of the unnormalized logprob of p(c_{0:N-1} | x)
+            if n == N - 1:
+                probs = torch.exp(logprobs_kl)
+                entrpy = torch.distributions.Categorical(probs).entropy()
 
-                # -------- Compute cs_pred and entropy using KL Loss: --------------------
-                    # Get the logprobs which is log p(c_n|c_1..c_n-1, x)
-                logprobs_kl = kl_loss_func(E.clone().detach())
-                
-                    # Compute entropy of the unnormalized logprob of p(c_{0:N-1} | x)
-                if n == N - 1:
-                    probs = torch.exp(logprobs_kl)
-                    entrpy = torch.distributions.Categorical(probs).entropy()
-
-                c = cs[0, n] # The ground-truth cluster of the n-th point (which is similar in all B datasets)
-                if cs_pred_train is not None:
-                    cs_pred_train[:, n] = get_argmax_from_probs(logprobs_kl)
-                    # cs_pred_train[:, n] = torch.argmax(logprobs_kl.clone().detach(), dim=1)  # [B, 1] compute this for NMI computation later.
-                logprob_sum -= logprobs_kl[:, c] # .mean() # [B, 1], The loss is minus the value in the relevant cluster assignment in logprobs.
-                # ------------------------------------------------------------------------
-                
-                
-                # -------- MC Loss: --------------------
-                mc_n_term, log_pn = mc_r_loss_func(E, log_pn, n, N, cs[0, :], B, self, hs, qs, lambda_reg=self.lambda_reg, lambda_cd=self.lambda_cd, remove_last_term=uniform_c)
+            c = cs[0, n] # The ground-truth cluster of the n-th point (which is similar in all B datasets)
+            if cs_pred_train is not None:
+                cs_pred_train[:, n] = get_argmax_from_probs(logprobs_kl)
+                # cs_pred_train[:, n] = torch.argmax(logprobs_kl.clone().detach(), dim=1)  # [B, 1] compute this for NMI computation later.
+            kl_loss -= logprobs_kl[:, c] # .mean() # [B, 1], The loss is minus the value in the relevant cluster assignment in logprobs.
+            # -------- END KL Loss: ----------------
+            
+            
+            # # -------- J Loss: --------------------
+               ### ! Here we also need to check the option where we send hs, qs to the "sample_for_J_loss" function ! ###
+            if 'J' in self.params['loss_str'] and n == N - 1:
+                j_loss, data_E = j_loss_func(self, E, cs[0, n], hs, qs)  # scalars
+            # # -------- END J Loss: ----------------
+            
+            
+            # -------- MC Loss: --------------------
+            if '_R' in self.params['loss_str']:
+                mc_n_term, log_pn = mc_r_loss_func(E, log_pn, n, N, cs[0, :], B, self, hs, qs, epsilon=1e-5, lambda_r=1.0)
                 mc_loss += mc_n_term
-                # -------- END MC Loss: ----------------
+            else:
+                mc_n_term, log_pn = mc_loss_func(E, log_pn, n, N, cs[0, :], B, epsilon=1e-5)
+                mc_loss += mc_n_term
+            # -------- END MC Loss: ----------------
         
         mc_loss = mc_loss / N
         
         K = (torch.ones(1,) * K).to(data.device)  # we need this line probably because when running with dataParallel it expect all return values to be on the same device
-               
-        return mc_loss, logprob_sum, entrpy, cs_pred_train, K
+                  
+        return mc_loss, kl_loss, j_loss, entrpy, cs_pred_train, K
 
 
 class AggregateClusteredSum(nn.Module):

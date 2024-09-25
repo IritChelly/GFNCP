@@ -5,14 +5,15 @@ def get_parameters(dataset_name):
     params = {}
     
     params['batch_size'] = 64
-    params['max_it'] = 10000
+    params['max_it'] = 20000
     params['loss_str'] = 'MC_R'  # Choose from: {'MC + J', 'MC', 'MC_R', 'J', 'MC + J + KL', 'KL'}
     params['data_path'] = '/home/tohamy/Projects/data'  # options: [/home/tohamy/Projects/data, /vildata/tohamy/CPAB_Activation/data'
     
-    params['lambda_cd'] = 0.2  # the weight for the contrastive-divergence loss (learned reward)
-    params['lambda_reg'] = 2  # he weight for the regularization loss (fixed reward)
-    params['beta_uniform'] = 0.9  # the probability for non-uniform run
-    
+    params['lambda_mc'] = 1
+    params['lambda_j'] = 1
+    params['lambda_entrpy'] = 0
+    params['mc_weights'] = {}  #{200:2, 300:3, 400:4, 500:5, 600:6, 700:7, 1000:10}
+    params['j_weights'] = {}  #{200:2, 300:3, 400:4, 500:5, 600:6, 700:7, 1000:10}
     params['plot_freq'] = 100  # -1, 100..
     params['save_model_freq'] = 500
     params['iter_stats_avg'] = 1000  # from this iteration we start computing stats average (NMI, ARI, LL)

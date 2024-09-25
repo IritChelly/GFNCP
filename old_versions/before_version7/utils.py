@@ -145,11 +145,14 @@ def cosine_scheduler(base_value, final_value, epochs, niter_per_ep, warmup_epoch
     return schedule 
 
 
-def update_stats_train(it, N, K, loss, entrpy, NMI_train, ARI_train):
+def update_stats_train(it, N, K, loss, kl_loss, mc_loss, j_loss, entrpy, NMI_train, ARI_train):
     stats = OrderedDict(it=it)
     stats.update({'N': N})
     stats.update({'K': K})
     stats.update({'loss': loss})
+    stats.update({'kl_loss': kl_loss})
+    stats.update({'mc_loss': mc_loss})
+    stats.update({'j_loss': j_loss})
     stats.update({'entrpy': entrpy})
     stats.update({'NMI_train': NMI_train})
     stats.update({'ARI_train': ARI_train})

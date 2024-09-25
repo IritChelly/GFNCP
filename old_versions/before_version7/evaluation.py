@@ -19,11 +19,12 @@ def eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=50):
         
         NMI_test = 0
         ARI_test = 0
+        # ACC_test = 0
         LL_test = 0
         MC_test = 0
         for i in range(M):
 
-            data, cs_gt, _, K, _ = data_generator.generate(N=None, batch_size=batch_size, train=False)  # data: [1, N, 2] or [1, N_sampling, 28, 28] or [1, N, 3, 28, 28]
+            data, cs_gt, _, K = data_generator.generate(N=None, batch_size=batch_size, train=False)  # data: [1, N, 2] or [1, N_sampling, 28, 28] or [1, N, 3, 28, 28]
             cs_gt = cs_gt[0, :] 
             N = data.size(1)
 
@@ -32,6 +33,7 @@ def eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=50):
 
             NMI_test += compute_NMI(cs_gt, cs_test, None)
             ARI_test += compute_ARI(cs_gt, cs_test, None)
+            # ACC_test += compute_ACC(cs_gt, cs_test)
             LL_test += ll
             MC_test += mc_loss
 
@@ -39,6 +41,7 @@ def eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=50):
         ARI_test = ARI_test / M
         LL_test = LL_test / M
         MC_test = MC_test / M
+        # ACC_test = ACC_test / M
         
         print('\n(eval) iteration: {0}, N: {1}, K: {2}, NMI_test: {3:.3f}, ARI_test: {4:.3f}, LL_test: {5:.3f}, MC_test: {6:.3f}'.format(it, N, K, NMI_test, ARI_test, LL_test, MC_test))
 
@@ -64,6 +67,9 @@ def eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=50):
         if ARI_test > stats['ARI_max']:
             stats.update({'ARI_max': ARI_test})
             stats.update({'ARI_max_it': it})
+        # if ACC_test > stats['ACC_max']:
+        #     stats.update({'ACC_max': ACC_test})
+        #     stats.update({'ACC_max_it': it})
         if LL_test > stats['LL_max']:
             stats.update({'LL_max': LL_test})
             stats.update({'LL_max_it': it})
@@ -89,7 +95,7 @@ def eval_stats_Beam_Search(wnb, data_generator, batch_size, params, dpmm, it, st
         ARI_test = 0
         for i in range(M):
 
-            data, cs_gt, _, K, _ = data_generator.generate(N=None, batch_size=batch_size, train=False)  # data: [1, N, 2] or [1, N_sampling, 28, 28] or [1, N, 3, 28, 28]
+            data, cs_gt, _, K = data_generator.generate(N=None, batch_size=batch_size, train=False)  # data: [1, N, 2] or [1, N_sampling, 28, 28] or [1, N, 3, 28, 28]
             cs_gt = cs_gt[0, :] 
             N = data.size(1)
 
@@ -171,7 +177,6 @@ def plot_samples_and_histogram(wnb, data_orig, cs_gt, params, dpmm, it, N=20, sh
             wandb.log(curr_stats, step=it)
             
     dpmm.train()
-
 
 
 def sample_from_model_for_NMI(data, dpmm, it):

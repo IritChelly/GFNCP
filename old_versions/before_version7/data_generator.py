@@ -4,7 +4,6 @@ from torchvision import datasets, transforms
 from utils import relabel, GaussianBlur, Solarization, DropOutFeatures, GaussianNoise
 from PIL import Image
 import matplotlib.pyplot as plt
-from scipy.stats import bernoulli
 
 
 
@@ -178,21 +177,11 @@ class dataGenerator():
                 
                 # Insert the prepared data chunk to the "data" tensor in the right places
                 data[i, cumsum[k]:cumsum[k + 1], :] = prepared_data
+                
 
-
-        # Use random exploration (random c values instead of pseudo-labels) in low probability, only during training:
-        if train:
-            uniform_c = 1 - bernoulli.rvs(self.params['beta_uniform'])
-        else:
-            uniform_c = 0
-            
-        cs = np.empty(N, dtype=np.int32)  
+        cs = np.empty(N, dtype=np.int32)     
         for k in range(K):
-            if uniform_c == 1:
-                cs[cumsum[k]:cumsum[k + 1]] = np.random.choice(np.arange(K))
-            else:
-                cs[cumsum[k]:cumsum[k + 1]] = k
-        
+            cs[cumsum[k]:cumsum[k + 1]]= k
         
         # Shuffle "data" and "cs" in the same way:
         arr = np.arange(N)
@@ -205,7 +194,7 @@ class dataGenerator():
         
         cs = torch.tensor(cs)
         cs = cs.repeat(data.shape[0], 1)  # [B, N] where all rows are the same
-        return data, cs, clusters, K, bool(uniform_c)    # e.g.: data: [B, N, 28, 28], cs: [B, N], clusters: [N+2]
+        return data, cs, clusters, K    # e.g.: data: [B, N, 28, 28], cs: [B, N], clusters: [N+2]
     
 
     def get_full_test_data(self):
@@ -296,21 +285,10 @@ class gauss2dGenerator():
                 
                 data[i, cumsum[k]:cumsum[k + 1], :] = samples
 
-
-        # Use random exploration (random c values instead of pseudo-labels) in low probability, only during training:
-        if train:
-            uniform_c = 1 - bernoulli.rvs(self.params['beta_uniform'])
-        else:
-            uniform_c = 0
-            
-        cs = np.empty(N, dtype=np.int32)  
+        cs = np.empty(N, dtype=np.int32)     
         for k in range(K):
-            if uniform_c == 1:
-                cs[cumsum[k]:cumsum[k + 1]] = np.random.choice(np.arange(K))
-            else:
-                cs[cumsum[k]:cumsum[k + 1]] = k
-                
-
+            cs[cumsum[k]:cumsum[k + 1]] = k
+               
         # Shuffle "data" and "cs" in the same way:
         arr = np.arange(N)
         np.random.shuffle(arr)
@@ -328,7 +306,7 @@ class gauss2dGenerator():
         data = data - medians
         #data = 2*data/(maxs-mins)-1        #data point are now in [-1,1]
         
-        return data, cs, clusters, K, bool(uniform_c) 
+        return data, cs, clusters, K
     
 
 

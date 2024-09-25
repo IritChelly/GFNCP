@@ -56,6 +56,11 @@ def main(args):
     weight_decay_end = params['weight_decay_end']
     device = params['device']
     show_histogram = args.show_histogram  # A flag for analyzing a trained model (histogram)
+    lambda_mc = params['lambda_mc']
+    lambda_j = params['lambda_j']
+    lambda_entrpy = params['lambda_entrpy']
+    mc_weights = params['mc_weights']
+    j_weights = params['j_weights']
     plot_freq = params['plot_freq']
     save_model_freq = params['save_model_freq']
     unsup_flag = params['unsup_flag']
@@ -146,7 +151,7 @@ def main(args):
     print('Start training.') 
     
     for it in range(start_it, max_it):
-        
+                
         dpmm.train()  # new model
 
         # Update learning rate & weight decay:
@@ -168,7 +173,7 @@ def main(args):
             stats = eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=dataset_test_size//batch_size)
             
             # Plots. Here we must use N=20 because we need to plot the results:
-            data, cs_gt, clusters, K, _ = data_generator.generate(N=20, batch_size=1, train=False)  # data: [1, N, 2] or [1, N, 28, 28] or [1, N, 3, 28, 28]            
+            data, cs_gt, clusters, K = data_generator.generate(N=20, batch_size=1, train=False)  # data: [1, N, 2] or [1, N, 28, 28] or [1, N, 3, 28, 28]            
             plot_samples_and_histogram(wnb, data, cs_gt[0, :], params, dpmm, it, N=20, show_histogram=show_histogram)
             
         # Save the model periodically:
@@ -177,7 +182,7 @@ def main(args):
             save_model(state, it, dpmm, optimizer, checkpoint_dir, checkpoint_meta_dir)
   
         # Generate one batch for training
-        data, cs, clusters, K, uniform_c = data_generator.generate(N=None, batch_size=batch_size, train=True, unsup=unsup_flag)
+        data, cs, clusters, K = data_generator.generate(N=None, batch_size=batch_size, train=True, unsup=unsup_flag)
         
         # DEBUG: HOW AUGMENTED IMAGES LOOK LIKE
         # data, cs, clusters, K = data_generator.generate(N=20, batch_size=1, train=True, unsup=True)  # data: [1, N, 2] or [1, N, 28, 28] or [1, N, 3, 28, 28]            
@@ -185,16 +190,33 @@ def main(args):
         
         N = data.shape[1]
         
+        # Display adaptive learning rate
+        # curr_lr = optimizer.param_groups[0]['lr']
+        
         # Training of one point: FW and Backprop of one batch.
         # (Each training step includes a few permutations of the data order)   
         dpmm.train()
         
         # Forward step (includes: 1 fw step of encode backbone + N fw steps of the main backbone)
-        loss, logprob_sum, entrpy, cs_pred_train, K = dpmm(data, cs, it=it, uniform_c=uniform_c)
+        mc_loss, kl_loss, j_loss, entrpy, cs_pred_train, K = dpmm(data, cs)
                 
         # Average on outputs from all devices
-        loss = loss.mean()
+        kl_loss = kl_loss.mean()
+        mc_loss = mc_loss.mean()
         entrpy = entrpy.mean()
+        j_loss = j_loss.mean()
+
+        # Choose the loss:
+        if loss_str == 'MC + J':
+            loss = lambda_j * j_loss + lambda_mc * mc_loss - lambda_entrpy * entrpy
+        elif loss_str == 'MC + J + KL':
+            loss = lambda_j * j_loss + lambda_mc * mc_loss + kl_loss - lambda_entrpy * entrpy
+        elif loss_str == 'J':
+            loss = lambda_j * j_loss - lambda_entrpy * entrpy
+        elif loss_str in ('MC', 'MC_R'):
+            loss = lambda_mc * mc_loss
+        elif loss_str == 'KL':
+            loss = kl_loss
 
         loss.backward()    # this accumulates the gradients for each permutation
         optimizer.step()      # the gradients used in this step are the sum of the gradients for each permutation 
@@ -204,11 +226,11 @@ def main(args):
         ARI_train = compute_ARI(cs[0, :], cs_pred_train, None)           
                 
         # Store statistics in wandb:
-        sts = update_stats_train(it, N, K, loss, entrpy, NMI_train, ARI_train)  # stats.update({'train_acc1': acc_train})
+        sts = update_stats_train(it, N, K, loss, kl_loss, mc_loss, j_loss, entrpy, NMI_train, ARI_train)  # stats.update({'train_acc1': acc_train})
         wandb.log(sts, step=it)
 
         if it % 10 == 0:
-            print('\n(train) iteration: {0}, N: {1}, K: {2}, NMI_train: {3:.3f}, ARI_train: {4:.3f}, Loss: {5:.3f}'.format(it, N, int(K[0].detach().cpu().numpy()), NMI_train, ARI_train, loss))
+            print('\n(train) iteration: {0}, N: {1}, K: {2}, NMI_train: {3:.3f}, ARI_train: {4:.3f}, MC_loss: {5:.3f}'.format(it, N, int(K[0].detach().cpu().numpy()), NMI_train, ARI_train, mc_loss))
 
         it += 1
         
@@ -268,7 +290,7 @@ if __name__ == '__main__':
         
     args = parser.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
-    
+
     if not args.load_model and not args.run_geweke and not args.eval_best_model:
         # EXPECT EMPTY FOLDER CALLED saved_model:
         model_dir = 'saved_models'
@@ -279,6 +301,14 @@ if __name__ == '__main__':
 
     if os.path.exists('wandb'): 
         shutil.rmtree('wandb')
+    
+    # if not args.load_model and not args.run_geweke and not args.eval_best_model:
+    #     # Remove saved models
+    #     model_dir = 'saved_models'
+    #     if not os.path.exists(model_dir):
+    #         os.makedirs(model_dir, exist_ok=True)
+
+    #     shutil.rmtree(model_dir)
     
     main(args)
 
