@@ -58,7 +58,6 @@ def data_invariance_metric(data_generator, dpmm, N=20, perms=500, Z=1000):
     # ax.set_xlim(left=min_data_lim, right=max_data_lim)
     
     fig.savefig('data_invariance_hist.png')
-    fig.savefig('data_invariance_hist.pdf', format='pdf', bbox_inches='tight')
     tkz.save('data_invariance_hist.tex') 
     
     return fig, plt
