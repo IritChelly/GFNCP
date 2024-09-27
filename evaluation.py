@@ -172,7 +172,7 @@ def plot_samples_and_histogram(wnb, data_orig, cs_gt, params, dpmm, it, N=20, sh
             
     dpmm.train()
 
-
+    
 
 def sample_from_model_for_NMI(data, dpmm, it):
     css = dpmm.module.sample_for_NMI(data, it)  # css (cs test): [S, N]; probs: [S,] (or B instead of S) 

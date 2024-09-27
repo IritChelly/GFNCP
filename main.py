@@ -18,6 +18,7 @@ from utils import *
 from geweke_test import geweke_test_histogram, geweke_test_multiple_N
 from params import get_parameters
 from evaluation import eval_stats, plot_samples_and_histogram
+from plot_histogram import data_invariance_metric
 import shutil
 from collections import OrderedDict
 import random
@@ -114,27 +115,47 @@ def main(args):
     # Initialize dictionary for eval stats:
     stats = {'NMI_max': 0, 'ARI_max': 0, 'ACC_max': 0, 'LL_max': -float('Inf'), 'MC_min': float('Inf'), 
              'NMI_max_it': 0, 'ARI_max_it': 0, 'ACC_max_it': 0, 'LL_max_it': 0, 'MC_min_it': 0}
-    
-    # Call Geweke's Test function is required:
-    if run_geweke:
-        if not os.path.exists('output/geweke/'):
-            os.makedirs('output/geweke/', exist_ok=True)
-            
-        fig1, plt1 = geweke_test_histogram(dpmm, data_generator, params)
-        image = wandb.Image(fig1)
-        wnb.log({f"Plots_Geweke/Geweke_histogram": image}, step=it)
-        plt1.clf()
-            
-        fig2, plt2 = geweke_test_multiple_N(dpmm, data_generator, params)
-        image = wandb.Image(fig2)
-        wnb.log({f"Plots_Geweke/Geweke_multiple_N": image}, step=it)
-        plt2.clf()
-        return
+
 
     if eval_best_model:
         print('Start evaluation of chosen model')
-        M = (dataset_test_size//batch_size)*2
-        stats = eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=M)
+        
+        dpmm.eval()
+        
+        with torch.no_grad():
+        
+            # # Compute NMI:
+            # M = (dataset_test_size//batch_size)*2
+            # stats = eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=M)
+            
+            # # Compute NMI using Beam Search:
+            # M = 1
+            # stats = eval_stats_Beam_Search(wnb, data_generator, batch_size, params, dpmm, it, stats, M=M):
+            
+            # Get histogram of invariance metric:
+            perms = 500
+            Z = 3
+            fig, plt = data_invariance_metric(data_generator, dpmm, perms=perms, Z=Z)
+            image = wandb.Image(fig)
+            wnb.log({f"Plots_invariance_hist/hist_invariance_{it}": image}, step=it)
+            plt.clf()
+            
+            # # Run Geweke's Test:
+            # if not os.path.exists('output/geweke/'):
+            #     os.makedirs('output/geweke/', exist_ok=True)
+                
+            # fig1, plt1 = geweke_test_histogram(dpmm, data_generator, params)
+            # image = wandb.Image(fig1)
+            # wnb.log({f"Plots_Geweke/Geweke_histogram": image}, step=it)
+            # plt1.clf()
+                
+            # fig2, plt2 = geweke_test_multiple_N(dpmm, data_generator, params)
+            # image = wandb.Image(fig2)
+            # wnb.log({f"Plots_Geweke/Geweke_multiple_N": image}, step=it)
+            # plt2.clf()
+        
+        dpmm.train()
+        
         return
 
     # ----------------------------------------------
@@ -165,7 +186,7 @@ def main(args):
             
             # NMI, ARI, LL.
             # data, cs_gt, clusters, K = data_generator.generate(N=None, batch_size=batch_size, train=False)  # data: [1, N, 2] or [1, N_sampling, 28, 28] or [1, N, 3, 28, 28]
-            stats = eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=dataset_test_size//batch_size)
+            # stats = eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=dataset_test_size//batch_size)
             
             # Plots. Here we must use N=20 because we need to plot the results:
             data, cs_gt, clusters, K, _ = data_generator.generate(N=20, batch_size=1, train=False)  # data: [1, N, 2] or [1, N, 28, 28] or [1, N, 3, 28, 28]            
