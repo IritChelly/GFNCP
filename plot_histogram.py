@@ -3,6 +3,7 @@ import torch
 import matplotlib.pyplot as plt
 from utils import relabel
 from plot_functions import plot_samples_RGB, plot_samples_Gauss2D, plot_samples_BW
+from scipy import stats as scpy
 import tikzplotlib as tkz
 
 
@@ -36,6 +37,9 @@ def data_invariance_metric(data_generator, dpmm, N=20, perms=500, Z=1000):
         prob_std_avg = prob_std / np.mean(probs)
         std_all[z] = prob_std_avg
     
+    
+    # ^^^^^^^^^^^^^^^^^^^^^^^^
+    
     # Build a histogram from std_all:
     plt.clf()
     plt.cla()
@@ -51,6 +55,7 @@ def data_invariance_metric(data_generator, dpmm, N=20, perms=500, Z=1000):
     counts, bins = np.histogram(std_all, bins=20) 
     print('counts:', counts)
     print('bins:', bins)
+    print('std_all:', std_all)
     ax.hist(bins[:-1], bins, weights=counts, edgecolor='black', color='lightblue')
     ax.set_title('Clustering Probabilities std for different data permutations', fontsize='25')
     ax.set_xlabel('Bin Number')
@@ -60,7 +65,58 @@ def data_invariance_metric(data_generator, dpmm, N=20, perms=500, Z=1000):
     fig.savefig('data_invariance_hist.png')
     tkz.save('data_invariance_hist.tex') 
     
+    # ^^^^^^^^^^^^^^^^^^^^^^^^
+    
+    # Build another histogram from std_all:    
+    plt.clf()
+    plt.cla()
+    plt.close()
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+    plt.subplots_adjust(left=0.15,
+                    bottom=0.1, 
+                    right=0.94, 
+                    top=0.94, 
+                    wspace=0.5, 
+                    hspace=0.3)
+    
+    counts, bins = np.histogram(std_all, bins=30, range=(0, 15)) 
+    print('counts:', counts)
+    print('bins:', bins)
+    print('std_all:', std_all)
+    ax.hist(bins[:-1], bins, weights=counts, edgecolor='black', color='lightblue')
+    ax.set_title('Clustering Probabilities std for different data permutations', fontsize='25')
+    ax.set_xlabel('Bin Number')
+    ax.set_ylabel('std/mean(probs)')
+    # ax.set_xlim(left=min_data_lim, right=max_data_lim)
+    
+    fig.savefig('data_invariance_hist_bins30.png')
+    tkz.save('data_invariance_hist_bins30.tex') 
+    
+    # ^^^^^^^^^^^^^^^^^^^^^^^^
+    
+    # Empirical CDF:
+    plt.clf()
+    plt.cla()
+    plt.close()
+    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+    plt.subplots_adjust(left=0.15,
+                    bottom=0.1, 
+                    right=0.94, 
+                    top=0.94, 
+                    wspace=0.5, 
+                    hspace=0.3)
+    
+    res = scpy.ecdf(std_all)
+    res.cdf.plot(ax)
+    print('res.cdf.quantiles:', res.cdf.quantiles)
+    print('res.cdf.probabilities:', res.cdf.probabilities)
+    ax.set_xlabel('std/mean(probs)')
+    ax.set_ylabel('Empirical CDF')
+    fig.savefig('data_invariance_ecdf.png')
+    tkz.save('data_invariance_ecdf.tex') 
+    
     return fig, plt
+
     
     
          

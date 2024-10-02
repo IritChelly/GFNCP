@@ -17,7 +17,7 @@ from data_generator import get_generator
 from utils import *
 from geweke_test import geweke_test_histogram, geweke_test_multiple_N
 from params import get_parameters
-from evaluation import eval_stats, plot_samples_and_histogram
+from evaluation import eval_stats, plot_samples_and_histogram, eval_stats_Beam_Search
 from plot_histogram import data_invariance_metric
 import shutil
 from collections import OrderedDict
@@ -124,13 +124,22 @@ def main(args):
         
         with torch.no_grad():
         
-            # # Compute NMI:
-            # M = (dataset_test_size//batch_size)*2
-            # stats = eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=M)
-            
+            # Compute NMI, ARI, MC_test:
+            if params['eval_it'] != -1:
+                for i in params['eval_it']:
+                    checkpoint_path = os.path.join('saved_models/', datasetname, 'checkpoints', 'checkpoint_' + str(i) + '.pth')
+                    state = restore_checkpoint(checkpoint_path, state, params['device'])
+                    print('\nRestore model from iteration:', state['step'])
+                    M = (dataset_test_size//batch_size)*2
+                    stats = eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=M)           
+            else:
+                M = (dataset_test_size//batch_size)*2
+                stats = eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=M)             
+
+
             # # Compute NMI using Beam Search:
             # M = 1
-            # stats = eval_stats_Beam_Search(wnb, data_generator, batch_size, params, dpmm, it, stats, M=M):
+            # stats = eval_stats_Beam_Search(wnb, data_generator, batch_size, params, dpmm, it, stats, M=M)
             
             # Get histogram of invariance metric:
             perms = 500

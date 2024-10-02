@@ -23,6 +23,8 @@ def get_parameters(dataset_name):
     params['tempr'] = 0.05  # also 0.4 is good.  # calibration temperature (used in the "sample" and "sample_for_J_loss" functions). Use 1 for no calibration
     params['K_fixed'] = -1
     
+    params['eval_it'] = (3500, 4000, 4500, 5000, 5500)  # Iteration numbers to perform eval on. In case we want specific model, put -1 and use the regular checkpoint file. 
+    
     # Optimation params:    
     params['lr'] = 0.0005
     params['min_lr'] = 1e-6
