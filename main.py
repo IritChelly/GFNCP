@@ -17,7 +17,7 @@ from data_generator import get_generator
 from utils import *
 from geweke_test import geweke_test_histogram, geweke_test_multiple_N
 from params import get_parameters
-from evaluation import eval_stats, plot_samples_and_histogram, eval_stats_Beam_Search
+from evaluation import *
 from plot_histogram import data_invariance_metric
 import shutil
 from collections import OrderedDict
@@ -124,30 +124,37 @@ def main(args):
         
         with torch.no_grad():
         
-            # Compute NMI, ARI, MC_test:
-            if params['eval_it'] != -1:
-                for i in params['eval_it']:
-                    checkpoint_path = os.path.join('saved_models/', datasetname, 'checkpoints', 'checkpoint_' + str(i) + '.pth')
-                    state = restore_checkpoint(checkpoint_path, state, params['device'])
-                    print('\nRestore model from iteration:', state['step'])
-                    M = (dataset_test_size//batch_size)*2
-                    stats = eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=M)           
-            else:
-                M = (dataset_test_size//batch_size)*2
-                stats = eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=M)             
+            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            
+            # # Compute NMI, ARI, MC_test:
+            # if params['eval_it'] != -1:
+            #     for i in params['eval_it']:
+            #         checkpoint_path = os.path.join('saved_models/', datasetname, 'checkpoints', 'checkpoint_' + str(i) + '.pth')
+            #         state = restore_checkpoint(checkpoint_path, state, params['device'])
+            #         print('\nRestore model from iteration:', state['step'])
+            #         M = (dataset_test_size//batch_size)*2
+            #         stats = eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=M)           
+            # else:
+            #     M = (dataset_test_size//batch_size)*2
+            #     stats = eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=M)             
 
-
+            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            
             # # Compute NMI using Beam Search:
             # M = 1
             # stats = eval_stats_Beam_Search(wnb, data_generator, batch_size, params, dpmm, it, stats, M=M)
             
-            # Get histogram of invariance metric:
-            perms = 500
-            Z = 3
-            fig, plt = data_invariance_metric(data_generator, dpmm, perms=perms, Z=Z)
-            image = wandb.Image(fig)
-            wnb.log({f"Plots_invariance_hist/hist_invariance_{it}": image}, step=it)
-            plt.clf()
+            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            
+            # # Get histogram of invariance metric:
+            # perms = 500
+            # Z = 3
+            # fig, plt = data_invariance_metric(data_generator, dpmm, perms=perms, Z=Z)
+            # image = wandb.Image(fig)
+            # wnb.log({f"Plots_invariance_hist/hist_invariance_{it}": image}, step=it)
+            # plt.clf()
+            
+            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
             
             # # Run Geweke's Test:
             # if not os.path.exists('output/geweke/'):
@@ -162,7 +169,44 @@ def main(args):
             # image = wandb.Image(fig2)
             # wnb.log({f"Plots_Geweke/Geweke_multiple_N": image}, step=it)
             # plt2.clf()
+            
+            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            
+            # Compare qualitative results of order permutations:
+            N = 20
+            
+            # ----- Extract dataset of one data point in different permutations, save it locally:
+            data, cs_gt, _, _, _ = data_generator.generate(N=N, batch_size=1, train=False)  
+            
+            data_all = []
+            cs_gt_all = []
+            for i in range(64):
+                # Prepare a permutation of the original data:
+                arr = np.arange(N)
+                np.random.shuffle(arr)   # permute the order in which the points are queried
+                data_perm = data[:, arr, :]
+                cs_perm = cs_gt[:, arr]
+                data_all.append(torch.clone(data_perm))
+                cs_gt_all.append(torch.clone(cs_perm))
+                print(cs_perm)
+            
+            print('---')
+            data_all = torch.cat(data_all, dim=0)
+            cs_gt_all = torch.cat(cs_gt_all, dim=0)
+            print(data_all.shape, cs_gt_all.shape)
+            print(cs_gt_all)
+            
+            torch.save(data_all, 'data_perms.pt') 
+            torch.save(cs_gt_all, 'cs_gt_perms.pt')
+            1/0
         
+            #  ----- Perform the test:
+            data = torch.load('data_perms.pt')  # data: [64, N, 28, 28] or [64, N, 2]
+            cs_gt = torch.load('cs_gt_perms.pt')  # cs_gt: [64, N]
+            plot_data_perm_for_paper(data, cs_gt, params, dpmm, it, N=N)
+        
+            # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            
         dpmm.train()
         
         return
@@ -194,8 +238,8 @@ def main(args):
             # print('\nPloting samples, compute NMI, ARI, LL, iteration ' + str(it) + '.. \n')   
             
             # NMI, ARI, LL.
-            # data, cs_gt, clusters, K = data_generator.generate(N=None, batch_size=batch_size, train=False)  # data: [1, N, 2] or [1, N_sampling, 28, 28] or [1, N, 3, 28, 28]
-            # stats = eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=dataset_test_size//batch_size)
+            data, cs_gt, clusters, K = data_generator.generate(N=None, batch_size=batch_size, train=False)  # data: [1, N, 2] or [1, N_sampling, 28, 28] or [1, N, 3, 28, 28]
+            stats = eval_stats(wnb, data_generator, batch_size, params, dpmm, it, stats, M=dataset_test_size//batch_size)
             
             # Plots. Here we must use N=20 because we need to plot the results:
             data, cs_gt, clusters, K, _ = data_generator.generate(N=20, batch_size=1, train=False)  # data: [1, N, 2] or [1, N, 28, 28] or [1, N, 3, 28, 28]            

@@ -174,6 +174,24 @@ def plot_samples_and_histogram(wnb, data_orig, cs_gt, params, dpmm, it, N=20, sh
 
     
 
+def plot_data_perm_for_paper(data, cs_gt, params, dpmm, it, N=20):
+    torch.cuda.empty_cache()  
+    dataname = params['dataset_name']
+    channels = params['channels']
+    dpmm.eval()
+
+    with torch.no_grad():
+        
+        for i in range(10):
+            # Get sampled clustering assignments:
+            data_perm = data[i, :][None, :]  # (1, 20, 28, 28) or (1, 20, 2)
+            cs_test, probs, _, _, data2 = sample_from_model(channels, data_perm, dpmm, S=100, take_max=False, seed=it)
+            fig, plt = plot_samples(params, dataname, data_perm, cs_test, probs, nmi=0, seed=it)
+            fig.savefig('sample_perm_' + str(i) + '.png')
+        
+    dpmm.train()
+    
+    
 def sample_from_model_for_NMI(data, dpmm, it):
     css = dpmm.module.sample_for_NMI(data, it)  # css (cs test): [S, N]; probs: [S,] (or B instead of S) 
     return css
